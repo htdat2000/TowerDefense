@@ -1,0 +1,62 @@
+{
+ "stone": {
+  "name": "Stone Tower",
+  "folder": "Stone",
+  "frame": 96,
+  "head_rotates": true,
+  "idle_sweep": false,
+  "event_frame": 3,
+  "muzzle": 24,
+  "projectile": "res://assets/Projectiles/projectile_stone.png",
+  "projectile_speed": 480,
+  "impact": {
+   "path": "res://assets/VFX/vfx_stone_impact.png",
+   "frame": 64,
+   "fps": 14
+  },
+  "range_cells": 3.2,
+  "cooldown": 1.1,
+  "damage": 6,
+  "placeholder_stats": true
+ },
+ "archer": {
+  "name": "Archer Tower",
+  "folder": "Archer",
+  "frame": 96,
+  "head_rotates": true,
+  "idle_sweep": true,
+  "event_frame": 5,
+  "muzzle": 26,
+  "projectile": "res://assets/Projectiles/projectile_arrow.png",
+  "projectile_speed": 700,
+  "impact": {
+   "path": "res://assets/VFX/vfx_arrow_impact.png",
+   "frame": 48,
+   "fps": 16
+  },
+  "range_cells": 3.8,
+  "cooldown": 0.6,
+  "damage": 3,
+  "placeholder_stats": true
+ },
+ "frost": {
+  "name": "Frost Tower",
+  "folder": "Frost",
+  "frame": 96,
+  "head_rotates": false,
+  "idle_sweep": false,
+  "event_frame": 5,
+  "muzzle": 0,
+  "projectile": "res://assets/Projectiles/projectile_ice_shard.png",
+  "projectile_speed": 520,
+  "impact": {
+   "path": "res://assets/VFX/vfx_ice_explosion.png",
+   "frame": 64,
+   "fps": 16
+  },
+  "range_cells": 3.0,
+  "cooldown": 1.4,
+  "damage": 2,
+  "placeholder_stats": true
+ }
+}

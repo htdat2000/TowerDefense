@@ -1,0 +1,42 @@
+{
+ "slime": {
+  "folder": "Slime",
+  "frame": 64,
+  "stride": 20,
+  "role": "Normal",
+  "hp": 12,
+  "speed": 60
+ },
+ "goblin": {
+  "folder": "Goblin",
+  "frame": 80,
+  "stride": 18,
+  "role": "Fast",
+  "hp": 10,
+  "speed": 85
+ },
+ "boar": {
+  "folder": "Boar",
+  "frame": 80,
+  "stride": 30,
+  "role": "Fast charger",
+  "hp": 18,
+  "speed": 120
+ },
+ "mushroom": {
+  "folder": "Mushroom",
+  "frame": 64,
+  "stride": 18,
+  "role": "Special (spore burst)",
+  "hp": 16,
+  "speed": 55
+ },
+ "treant": {
+  "folder": "Treant",
+  "frame": 96,
+  "stride": 24,
+  "role": "Tank / Elite",
+  "hp": 60,
+  "speed": 40
+ }
+}
