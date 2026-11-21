@@ -1,15 +1,19 @@
 extends Node2D
 ## Homing projectile. Projectile art faces EAST, so rotation = travel direction.
+## On hit: damage (with crit flag), optional status effects (data/towers.json "statuses"), impact strip.
 const VFX = preload("res://scripts/vfx_one_shot.gd")
 
 var speed := 500.0
 var damage := 1.0
+var is_crit := false
+var statuses: Array = []
 var target: Node2D
 var target_pos := Vector2.ZERO
 var impact: Dictionary = {}
 var sprite: Sprite2D
 
-func setup(tex: Texture2D, from: Vector2, tgt: Node2D, spd: float, dmg: float, impact_data: Dictionary) -> void:
+func setup(tex: Texture2D, from: Vector2, tgt: Node2D, spd: float, dmg: float, impact_data: Dictionary,
+        crit: bool = false, status_list: Array = []) -> void:
     sprite = Sprite2D.new()
     sprite.texture = tex
     add_child(sprite)
@@ -19,6 +23,8 @@ func setup(tex: Texture2D, from: Vector2, tgt: Node2D, spd: float, dmg: float, i
     speed = spd
     damage = dmg
     impact = impact_data
+    is_crit = crit
+    statuses = status_list
 
 func _process(delta: float) -> void:
     if is_instance_valid(target):
@@ -32,8 +38,13 @@ func _process(delta: float) -> void:
     global_position += to.normalized() * step
 
 func _hit() -> void:
-    if is_instance_valid(target) and target.has_method("take_damage"):
-        target.call("take_damage", damage)
+    if is_instance_valid(target):
+        if target.has_method("take_damage"):
+            target.call("take_damage", damage, is_crit)
+        if target.has_method("apply_status"):
+            for s in statuses:
+                if randf() <= float(s.get("chance", 1.0)):
+                    target.call("apply_status", String(s["kind"]), float(s["duration"]))
     if not impact.is_empty():
         VFX.play(get_parent().get_parent().get_node("Vfx"), String(impact["path"]), int(impact["frame"]), float(impact["fps"]), global_position)
     queue_free()

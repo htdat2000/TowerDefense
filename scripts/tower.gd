@@ -1,11 +1,16 @@
 extends Node2D
 ## Tower = fixed BASE layer + rotating HEAD layer (+ separate shadow).
 ## Base frames: build / idle / destroyed. Head frames: idle / attack (head art faces EAST, pivot = centre).
-## Towers 'build' first; after that they can fire. upgrade() swaps to the next of 5 levels.
+## Towers 'build' first; after that they can fire. upgrade() plays the upgrade VFX and swaps to the next of 5 levels.
+## VFX are requested through the vfx_requested signal (the level owner plays them), so this script has no scene dependencies.
 
 const SFB = preload("res://scripts/sprite_frames_builder.gd")
 signal fired(tower: Node2D, target: Node2D)
 signal destroyed_done(tower: Node2D)
+signal vfx_requested(vfx_name: String, pos: Vector2, scale_f: float, tint: Color)
+
+const UPGRADE_FPS := 14.0          # vfx_tower_upgrade fps
+const UPGRADE_SWAP_FRAME := 4      # frame 4 of vfx_tower_upgrade is the white flash that hides the sprite swap
 
 var tower_id := ""
 var level := 1
@@ -18,6 +23,7 @@ var shadow: Sprite2D
 var _cooldown_left := 0.0
 var _fire_target: Node2D = null
 var _event_done := true
+var _upgrading := false
 
 func setup(id: String, tower_data: Dictionary, start_level := 1) -> void:
     tower_id = id
@@ -58,23 +64,28 @@ func build() -> void:
     built = false
     head.visible = false
     base.play("build")
+    vfx_requested.emit("tower_spawn_particles", global_position, 1.0, Color.WHITE)
 
 func upgrade() -> bool:
-    if level >= 5 or not built:
+    if level >= 5 or not built or _upgrading:
         return false
+    _upgrading = true
+    vfx_requested.emit("tower_upgrade", global_position, 1.0, Color.WHITE)
+    get_tree().create_timer(float(UPGRADE_SWAP_FRAME) / UPGRADE_FPS).timeout.connect(_finish_upgrade)
+    return true
+
+func _finish_upgrade() -> void:
     level += 1
     _reload_frames()
     base.play("idle")
     head.play("idle")
-    var tw := create_tween()
-    tw.tween_property(self, "modulate", Color(1.7, 1.7, 1.7), 0.10)
-    tw.tween_property(self, "modulate", Color(1, 1, 1), 0.25)
-    return true
+    _upgrading = false
 
 func destroy() -> void:
     built = false
     head.visible = false
     base.play("destroyed")
+    vfx_requested.emit("tower_destruction_particles", global_position, 1.0, Color.WHITE)
 
 func damage() -> float:
     return float(data["damage"]) * (1.0 + 0.6 * (level - 1))      # PLACEHOLDER scaling

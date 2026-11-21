@@ -1,0 +1,7 @@
+{
+ "freeze":  {"speed_mult": 0.0, "dps": 0.0, "tint": [0.75, 0.92, 1.0]},
+ "slow":    {"speed_mult": 0.5, "dps": 0.0, "tint": [0.8, 0.85, 1.0]},
+ "stun":    {"speed_mult": 0.0, "dps": 0.0},
+ "burning": {"speed_mult": 1.0, "dps": 3.0, "tint": [1.0, 0.85, 0.75]},
+ "poison":  {"speed_mult": 0.85, "dps": 2.0, "tint": [0.8, 1.0, 0.75]}
+}
