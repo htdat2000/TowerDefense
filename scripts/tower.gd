@@ -3,12 +3,15 @@ extends Node2D
 ## Base frames: build / idle / destroyed. Head frames: idle / attack (head art faces EAST, pivot = centre).
 ## Towers 'build' first; after that they can fire. upgrade() plays the upgrade VFX and swaps to the next of 5 levels.
 ## VFX are requested through the vfx_requested signal (the level owner plays them), so this script has no scene dependencies.
+## Economy (M1): cost, upgrade_costs and sell_refund come from data/towers.json. `invested` = gold put into this tower;
+## main.gd charges GameState, the tower only reports prices (upgrade_cost, sell_value) and tracks `invested`.
 
 const SFB = preload("res://scripts/sprite_frames_builder.gd")
 signal fired(tower: Node2D, target: Node2D)
 signal destroyed_done(tower: Node2D)
 signal vfx_requested(vfx_name: String, pos: Vector2, scale_f: float, tint: Color)
 
+const MAX_LEVEL := 5
 const UPGRADE_FPS := 14.0          # vfx_tower_upgrade fps
 const UPGRADE_SWAP_FRAME := 4      # frame 4 of vfx_tower_upgrade is the white flash that hides the sprite swap
 
@@ -16,6 +19,7 @@ var tower_id := ""
 var level := 1
 var data: Dictionary = {}
 var built := false
+var invested := 0
 var target: Node2D = null
 var base: AnimatedSprite2D
 var head: AnimatedSprite2D
@@ -29,6 +33,10 @@ func setup(id: String, tower_data: Dictionary, start_level := 1) -> void:
     tower_id = id
     data = tower_data
     level = start_level
+    invested = int(data.get("cost", 0))
+    var costs: Array = data.get("upgrade_costs", [])
+    for i in range(mini(level - 1, costs.size())):
+        invested += int(costs[i])
     shadow = Sprite2D.new()
     shadow.texture = load(_path("shadow")) as Texture2D
     add_child(shadow)
@@ -59,6 +67,22 @@ func _reload_frames() -> void:
     SFB.add_strip(hf, "attack", _path("head_attack"), fs, 16.0, false)
     head.sprite_frames = hf
 
+# ---- economy (prices come from data, charging is done by main.gd)
+func upgrade_cost() -> int:
+    var costs: Array = data.get("upgrade_costs", [])
+    if level >= MAX_LEVEL or level - 1 >= costs.size():
+        return -1
+    return int(costs[level - 1])
+
+func can_upgrade() -> bool:
+    return built and not _upgrading and upgrade_cost() >= 0
+
+func can_sell() -> bool:
+    return built and not _upgrading
+
+func sell_value() -> int:
+    return floori(float(invested) * float(data.get("sell_refund", 0.7)))
+
 # ---- gameplay-facing API
 func build() -> void:
     built = false
@@ -67,8 +91,9 @@ func build() -> void:
     vfx_requested.emit("tower_spawn_particles", global_position, 1.0, Color.WHITE)
 
 func upgrade() -> bool:
-    if level >= 5 or not built or _upgrading:
+    if not can_upgrade():
         return false
+    invested += upgrade_cost()
     _upgrading = true
     vfx_requested.emit("tower_upgrade", global_position, 1.0, Color.WHITE)
     get_tree().create_timer(float(UPGRADE_SWAP_FRAME) / UPGRADE_FPS).timeout.connect(_finish_upgrade)

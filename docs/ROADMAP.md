@@ -5,14 +5,15 @@ Phases 1-5: art direction, Grassland (47-tile autotiles, grid layers), 3 towers 
 
 ## Already written in Godot, not yet run
 Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/destroy), monster (4-dir, path, hit, death), projectile, status effects (freeze/slow/stun/burning/poison), damage numbers, crit, VFX library, boss spawn debug key.
+M1 (written, not run): `game_state.gd` autoload, `wave_manager.gd`, `data/waves_grassland_01.json`, costs/refund/rewards in data, win/lose overlay, speed x1-3 button.
 
 ## GAME milestones
 ### M0 First run (do first)
 - [ ] Open in Godot, import, run `main.tscn`; fix every error/warning.
-- [ ] Verify: map, grid toggle, 3 towers build+idle, "Send wave", monster directions, tower aiming/firing, impacts, hit/death, F1-F6 debug keys.
+- [ ] Verify: map, grid toggle, towers build+idle, wave start, monster directions, tower aiming/firing, impacts, hit/death, F1-F6 debug keys.
 - [ ] Seams/filtering check; record oddities in KNOWN_ISSUES.
 - [ ] Smoke test documented (`godot --headless --path . --quit-after 600`).
-### M1 Core loop
+### M1 Core loop (WRITTEN, awaiting your test)
 - [ ] Autoload `game_state.gd` (gold, lives, wave, speed + signals).
 - [ ] `data/waves_grassland_01.json` + wave manager, next-wave button.
 - [ ] Reaching the end costs lives; kills give gold (data-driven); win/lose.
@@ -24,7 +25,7 @@ Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/des
 - [ ] Stone splash, Frost slow/freeze, Archer single target (data-driven).
 - [ ] 2x2 footprint support in placement code.
 ### M3 Monsters
-- [ ] hp/speed/armor/reward/lives cost in data; Boar burst, Mushroom spore, Treant armor.
+- [ ] armor in data (hp/speed/reward/lives_cost already in `monsters.json` since M1); Boar burst, Mushroom spore, Treant armor.
 - [ ] Health bars finalised; per-monster status tint.
 ### M4 UI (Control + Theme)
 - [ ] `theme.tres`, HUD (lives, gold, wave, pause, speed x1-3), bottom tower bar with costs/disabled state.
@@ -40,7 +41,7 @@ Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/des
 ## Art requests (filled by GAME chats; only these get art now)
 Format: `- [ ] asset | size/frames/fps | file name | where used | placeholder meanwhile`
 - (none yet)
-Known leftovers worth requesting when M4/M2 need them: tower ghost sprite, selection highlight, UI skin and icons.
+Known leftovers worth requesting when M4/M2 need them: tower ghost sprite, selection highlight, UI skin and icons, gold/lives HUD icons.
 
 ## Deferred art backlog (frozen until M2 is done and user approves)
 - Towers 4-10: Fire, Lightning, Poison, Cannon, Nature, Arcane, Sniper (5 levels each).
