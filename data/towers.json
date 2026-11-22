@@ -1,29 +1,53 @@
 {
  "stone": {
   "name": "Stone Tower", "folder": "Stone", "frame": 96, "head_rotates": true, "idle_sweep": false, "event_frame": 3, "muzzle": 24,
+  "footprint": [1, 1], "targeting": "first",
   "projectile": "res://assets/Projectiles/projectile_stone.png", "projectile_speed": 480,
   "impact": {"path": "res://assets/VFX/vfx_stone_impact.png", "frame": 64, "fps": 14},
   "range_cells": 3.2, "cooldown": 1.1, "damage": 6, "crit_chance": 0.05, "crit_mult": 2.0,
   "statuses": [{"kind": "stun", "chance": 0.15, "duration": 0.6}],
   "cost": 90, "sell_refund": 0.7, "upgrade_costs": [60, 90, 130, 190],
-  "placeholder_stats": true
+  "placeholder_stats": true,
+ "levels": [
+  {"damage": 6, "range_cells": 3.2, "cooldown": 1.1, "splash_radius_cells": 0.8, "splash_mult": 0.5, "statuses": [{"kind": "stun", "chance": 0.15, "duration": 0.6}]},
+  {"damage": 10, "range_cells": 3.5, "cooldown": 1.0, "splash_radius_cells": 0.9, "splash_mult": 0.5, "statuses": [{"kind": "stun", "chance": 0.17, "duration": 0.7}]},
+  {"damage": 14, "range_cells": 3.7, "cooldown": 0.9, "splash_radius_cells": 1.0, "splash_mult": 0.55, "statuses": [{"kind": "stun", "chance": 0.2, "duration": 0.8}]},
+  {"damage": 18, "range_cells": 4.0, "cooldown": 0.85, "splash_radius_cells": 1.1, "splash_mult": 0.6, "statuses": [{"kind": "stun", "chance": 0.22, "duration": 0.9}]},
+  {"damage": 22, "range_cells": 4.2, "cooldown": 0.75, "splash_radius_cells": 1.25, "splash_mult": 0.65, "statuses": [{"kind": "stun", "chance": 0.25, "duration": 1.0}]}
+ ]
  },
  "archer": {
   "name": "Archer Tower", "folder": "Archer", "frame": 96, "head_rotates": true, "idle_sweep": true, "event_frame": 5, "muzzle": 26,
+  "footprint": [1, 1], "targeting": "first",
   "projectile": "res://assets/Projectiles/projectile_arrow.png", "projectile_speed": 700,
   "impact": {"path": "res://assets/VFX/vfx_arrow_impact.png", "frame": 48, "fps": 16},
   "range_cells": 3.8, "cooldown": 0.6, "damage": 3, "crit_chance": 0.2, "crit_mult": 2.5,
   "statuses": [],
   "cost": 70, "sell_refund": 0.7, "upgrade_costs": [50, 80, 120, 170],
-  "placeholder_stats": true
+  "placeholder_stats": true,
+ "levels": [
+  {"damage": 3, "range_cells": 3.8, "cooldown": 0.6, "crit_chance": 0.2},
+  {"damage": 5, "range_cells": 4.1, "cooldown": 0.55, "crit_chance": 0.22},
+  {"damage": 7, "range_cells": 4.4, "cooldown": 0.5, "crit_chance": 0.25},
+  {"damage": 9, "range_cells": 4.7, "cooldown": 0.45, "crit_chance": 0.28},
+  {"damage": 11, "range_cells": 5.0, "cooldown": 0.4, "crit_chance": 0.3}
+ ]
  },
  "frost": {
   "name": "Frost Tower", "folder": "Frost", "frame": 96, "head_rotates": false, "idle_sweep": false, "event_frame": 5, "muzzle": 0,
+  "footprint": [1, 1], "targeting": "first",
   "projectile": "res://assets/Projectiles/projectile_ice_shard.png", "projectile_speed": 520,
   "impact": {"path": "res://assets/VFX/vfx_ice_explosion.png", "frame": 64, "fps": 16},
   "range_cells": 3.0, "cooldown": 1.4, "damage": 2, "crit_chance": 0.0, "crit_mult": 2.0,
   "statuses": [{"kind": "slow", "chance": 1.0, "duration": 2.0}, {"kind": "freeze", "chance": 0.2, "duration": 1.0}],
   "cost": 80, "sell_refund": 0.7, "upgrade_costs": [55, 85, 125, 180],
-  "placeholder_stats": true
+  "placeholder_stats": true,
+ "levels": [
+  {"damage": 2, "range_cells": 3.0, "cooldown": 1.4, "splash_radius_cells": 0.8, "splash_mult": 0.5, "splash_statuses": true, "statuses": [{"kind": "slow", "chance": 1.0, "duration": 2.0}, {"kind": "freeze", "chance": 0.2, "duration": 1.0}]},
+  {"damage": 3, "range_cells": 3.2, "cooldown": 1.3, "splash_radius_cells": 0.9, "splash_mult": 0.5, "splash_statuses": true, "statuses": [{"kind": "slow", "chance": 1.0, "duration": 2.3}, {"kind": "freeze", "chance": 0.22, "duration": 1.0}]},
+  {"damage": 4, "range_cells": 3.5, "cooldown": 1.2, "splash_radius_cells": 1.0, "splash_mult": 0.5, "splash_statuses": true, "statuses": [{"kind": "slow", "chance": 1.0, "duration": 2.6}, {"kind": "freeze", "chance": 0.25, "duration": 1.2}]},
+  {"damage": 5, "range_cells": 3.7, "cooldown": 1.1, "splash_radius_cells": 1.1, "splash_mult": 0.5, "splash_statuses": true, "statuses": [{"kind": "slow", "chance": 1.0, "duration": 2.9}, {"kind": "freeze", "chance": 0.28, "duration": 1.2}]},
+  {"damage": 6, "range_cells": 4.0, "cooldown": 1.0, "splash_radius_cells": 1.2, "splash_mult": 0.5, "splash_statuses": true, "statuses": [{"kind": "slow", "chance": 1.0, "duration": 3.2}, {"kind": "freeze", "chance": 0.32, "duration": 1.5}]}
+ ]
  }
 }

@@ -1,10 +1,13 @@
 # KNOWN ISSUES
 - The project has been written and statically checked but **never run in Godot** (this is the single place this is stated). M0 resolves it.
 - First-run risks (play-tested OK without major bugs at M1, but not formally checked against M0): `level.gd` (runtime TileSet + autotile painting), `tower.gd`/`monster.gd` (SpriteFrames from strips, frame events), `placement_layer.gd` drawing, `main.gd` UI, Phase 5 VFX scripts.
-- M1 balance (costs, rewards, wave sizes, start gold/lives) is placeholder; tower damage formulas in `tower.gd` still placeholder until M2.
-- Right click sells the tower under the cursor immediately (no confirmation) until the M2 tower panel exists.
+- M2 is written but NOT yet tested by the user: `targeting.gd`, splash in `projectile.gd`, the tower panel (anchored top-right PanelContainer in `main.gd`), selection ring in `placement_layer.gd`, 2x2 footprint path.
+- Balance (costs, rewards, wave sizes, start gold/lives, per-level tower stats) is placeholder. Frost splash applies slow/freeze to every monster in the radius: probably strong, tune in `towers.json`.
+- `towers.json` keeps top-level `damage`, `range_cells`, `cooldown`, `statuses` as a Lv1 summary because `gen_catalog.py` and `validate.py` read them; the game reads `levels[]`. Keep Lv1 in sync by hand, or teach those tools to read `levels[]` (ART-mode task).
+- No 2x2 tower art: a 2x2 footprint works in code, but the 96 px sprite sits small inside the 128 px footprint.
+- With a 2x2 footprint the cursor cell is the top-left cell (not centred).
 - Towers cannot be upgraded or sold while building or mid-upgrade (`can_upgrade` / `can_sell`).
 - Tile layers use Nearest filtering to avoid seams; fractional zoom may still show seams (add atlas padding or use integer scaling).
 - Preview-only: ice explosion offset in `prototype_with_starter_towers.png` (not a sprite bug).
 - `project.godot` features says "4.7"; README says 4.3+. Minimum is 4.3 (TileMapLayer).
-- New `.gd.uid` files for `game_state.gd` and `wave_manager.gd` are created by Godot on first import; commit them.
+- New `.gd.uid` files (`game_state.gd`, `wave_manager.gd`, `targeting.gd`) are created by Godot on first import; commit them.

@@ -2,7 +2,7 @@
 Godot 4.3+ (dev 4.7.x), GL Compatibility, 1280x768, `canvas_items`, keep aspect. Linear texture filter by default; the three tile layers use Nearest. PNGs import lossless, no mipmaps.
 
 ## Scene / layer stack (`level.gd`, bottom to top by z_index)
-Ground 0, Water 1, Path 2 (TileMapLayer) | Shadows 3, Decals 3, SmallDecor 4, Objects 5 (y-sort) | Grid 10 | Placement 11 | Actors 20 (towers+monsters, y-sort) | Projectiles 25 | Vfx 30 | UI (CanvasLayer) | Result overlay (CanvasLayer 10, always processing).
+Ground 0, Water 1, Path 2 (TileMapLayer) | Shadows 3, Decals 3, SmallDecor 4, Objects 5 (y-sort) | Grid 10 | Placement 11 | Actors 20 (towers+monsters, y-sort) | Projectiles 25 | Vfx 30 | UI (CanvasLayer, includes the tower panel) | Result overlay (CanvasLayer 10, always processing).
 Grid lines are never baked into tiles. Hiding the grid or changing placement state never touches tile layers.
 
 ## Autoloads
@@ -13,16 +13,17 @@ Grid lines are never baked into tiles. Hiding the grid or changing placement sta
 ## Scripts
 | Script | Role |
 |---|---|
-| `main.gd` | demo controller: UI, placement, economy (charges GameState), selling, monster spawning, win/lose overlay, targeting (to be split in M2/M4) |
+| `main.gd` | demo controller: UI, tower panel, placement, economy (charges GameState), selling, monster spawning, win/lose overlay, per-frame targeting (to be split in M4) |
 | `wave_manager.gd` | reads `data/waves_*.json`, schedules spawns, emits `spawn_requested`, `wave_started`, `wave_cleared`, `all_waves_cleared`; main calls `monster_resolved()` |
 | `level.gd` | builds layers, tileset, autotiling, decor, enemy `Curve2D` from data |
-| `grid_manager.gd` | grid LOGIC only (types, occupancy, can_place) |
-| `grid_renderer.gd`, `placement_layer.gd` | grid lines; available/occupied/selected/invalid overlays, ghost, range ring |
-| `tower.gd` | base + head + shadow; build/idle/attack/upgrade/destroy; prices (`upgrade_cost`, `sell_value`, `invested`); emits `fired`, `vfx_requested` |
+| `grid_manager.gd` | grid LOGIC only (types, occupancy, can_place for any footprint) |
+| `grid_renderer.gd`, `placement_layer.gd` | grid lines; available/occupied/selected/invalid overlays, ghost, range ring, selected placed tower |
+| `tower.gd` | base + head + shadow; build/idle/attack/upgrade/destroy; stats from data (`stat`, `stat_at`, `damage`, `range_px`, `cooldown`, `splash_*`, `statuses`); prices (`upgrade_cost`, `sell_value`, `invested`); `targeting` mode, `cell`, `footprint`; emits `fired`, `vfx_requested`, `state_changed` |
+| `targeting.gd` | static `Targeting.pick(mode, pos, range_px, monsters)`; modes first / last / strongest / closest |
 | `monster.gd` | 4-dir animation, path follow, hit/death, status effects; emits `damaged`, `died`, `reached_end`, `vfx_requested` |
-| `projectile.gd`, `vfx_one_shot.gd`, `vfx_library.gd`, `damage_number.gd` | projectiles, impacts, VFX helper, floating numbers |
+| `projectile.gd`, `vfx_one_shot.gd`, `vfx_library.gd`, `damage_number.gd` | projectiles (damage, statuses, splash), impacts, VFX helper, floating numbers |
 | `sprite_frames_builder.gd`, `data.gd` | strip -> SpriteFrames, JSON loader |
-Signals go up (`fired`, `damaged`, `died`, `reached_end`, `vfx_requested`); `main.gd` plays VFX, spawns projectiles and applies gold/lives.
+Signals go up (`fired`, `damaged`, `died`, `reached_end`, `vfx_requested`, `state_changed`); `main.gd` plays VFX, spawns projectiles and applies gold/lives.
 
 ## Economy and wave flow (M1)
 - Start gold, start lives, optional `start_towers` and the wave list come from `data/waves_grassland_01.json`.
@@ -31,8 +32,16 @@ Signals go up (`fired`, `damaged`, `died`, `reached_end`, `vfx_requested`); `mai
 - Wave monsters carry meta `counted = true`; only those are reported to `wave_manager.monster_resolved()` (debug F6 boss is not counted).
 - Win = last wave cleared with lives > 0 (`GameState.win()`); lose = lives reach 0. Both pause the tree and show the overlay; Restart unpauses and reloads the scene.
 
+## Towers (M2)
+- `towers.json` per tower: `levels[]` (5 entries, index 0 = Lv1) with `damage`, `range_cells`, `cooldown`, optional `crit_chance`, `crit_mult`, `statuses[]`, `splash_radius_cells`, `splash_mult`, `splash_statuses`. A key missing in a level falls back to the tower's top-level key (`tower.stat_at`). The top-level `damage`, `range_cells`, `cooldown`, `statuses` are the Lv1 summary that `gen_catalog.py` / `validate.py` read; the game uses `levels[]`.
+- Other keys: `footprint` `[w, h]` (cells, default `[1, 1]`), `targeting` default mode, `cost`, `sell_refund`, `upgrade_costs[4]`.
+- Targeting runs every frame in `main._process`: for each built tower `Targeting.pick(t.targeting, ...)`. `first` / `last` use `monster.dist` (distance along the path), `strongest` uses current `hp`, `closest` uses distance to the tower. The player cycles the mode in the panel.
+- Splash: `main._on_tower_fired` builds `{radius_px, mult, statuses}` from the tower and passes it to `projectile.setup`. On hit the target takes full damage and statuses; other monsters in group `monsters` within the radius take `damage * mult` (no crit), statuses only if `splash_statuses` is true. Monsters join the group in `main._spawn_monster`.
+- Panel: left click a placed tower (no tower picked) -> `main._select_placed`. Shows current -> next-level values, upgrade (disabled when busy, max level or unaffordable), sell (two clicks), targeting. `placement_layer.select_cell` draws the footprint highlight and range ring. Right click / Esc / Close / click on empty ground closes it.
+- Footprints: `main._footprint(id)` reads data; `grid.can_place` / `place` / `footprint_center` already handle any size. The cursor cell is the top-left cell of the footprint. Tower art is 96 px, so a 2x2 tower will look small until 2x2 art exists.
+
 ## Data (`data/`)
-`towers.json` (+ `cost`, `sell_refund`, `upgrade_costs[4]`), `monsters.json` (+ `reward`, `lives_cost`), `status_effects.json`, `waves_grassland_01.json` (Godot-owned); `vfx.json`, `grassland_tileset_32.json` (generated); `map_grassland_01.json` (logic grid + `enemy_path`), `map_decor.json`.
+`towers.json`, `monsters.json` (+ `reward`, `lives_cost`), `status_effects.json`, `waves_grassland_01.json` (Godot-owned); `vfx.json`, `grassland_tileset_32.json` (generated); `map_grassland_01.json` (logic grid + `enemy_path`), `map_decor.json`.
 
 ## Asset -> node mapping
 - Tileset `grassland_tileset_32.png` (32 px, 8 columns; row 0 grass, rows 1-6 path, rows 7-12 water). Bitmask N1 E2 S4 W8 NE16 SE32 SW64 NW128; corners count only if both adjacent edges set; outside map = connected. JSON maps mask -> index.
@@ -43,5 +52,5 @@ Signals go up (`fired`, `damaged`, `died`, `reached_end`, `vfx_requested`); `mai
 
 ## Conventions for new content
 1. New asset family: art tool output -> `export_assets.py` -> data entry (`data/*.json`) -> integration (data first, code second) -> `validate.py` passes.
-2. Towers/monsters are registry-driven: adding an id to `towers.json`/`monsters.json` should need no new code unless behaviour is new (new towers also need `cost`, `sell_refund`, `upgrade_costs`; monsters `reward`, `lives_cost`).
+2. Towers/monsters are registry-driven: adding an id to `towers.json`/`monsters.json` should need no new code unless behaviour is new (new towers also need `cost`, `sell_refund`, `upgrade_costs`, `levels[]`; monsters `reward`, `lives_cost`).
 3. Review-only outputs (GIFs, labeled sheets) never enter `res://`.
