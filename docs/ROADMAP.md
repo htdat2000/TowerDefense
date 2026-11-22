@@ -5,7 +5,6 @@ Phases 1-5: art direction, Grassland (47-tile autotiles, grid layers), 3 towers 
 
 ## Already written in Godot, not yet run
 Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/destroy), monster (4-dir, path, hit, death), projectile, status effects (freeze/slow/stun/burning/poison), damage numbers, crit, VFX library, boss spawn debug key.
-M1 (written, not run): `game_state.gd` autoload, `wave_manager.gd`, `data/waves_grassland_01.json`, costs/refund/rewards in data, win/lose overlay, speed x1-3 button.
 
 ## GAME milestones
 ### M0 First run (do first)
@@ -13,11 +12,11 @@ M1 (written, not run): `game_state.gd` autoload, `wave_manager.gd`, `data/waves_
 - [ ] Verify: map, grid toggle, towers build+idle, wave start, monster directions, tower aiming/firing, impacts, hit/death, F1-F6 debug keys.
 - [ ] Seams/filtering check; record oddities in KNOWN_ISSUES.
 - [ ] Smoke test documented (`godot --headless --path . --quit-after 600`).
-### M1 Core loop (WRITTEN, awaiting your test)
-- [ ] Autoload `game_state.gd` (gold, lives, wave, speed + signals).
-- [ ] `data/waves_grassland_01.json` + wave manager, next-wave button.
-- [ ] Reaching the end costs lives; kills give gold (data-driven); win/lose.
-- [ ] Tower cost, sell refund, upgrade cost per level (data).
+### M1 Core loop (DONE, play-tested by user: no major bugs)
+- [x] Autoload `game_state.gd` (gold, lives, wave, speed + signals).
+- [x] `data/waves_grassland_01.json` + wave manager, next-wave button.
+- [x] Reaching the end costs lives; kills give gold (data-driven); win/lose.
+- [x] Tower cost, sell refund, upgrade cost per level (data).
 - Done when a 10-wave level can be won or lost with correct gold/lives.
 ### M2 Towers
 - [ ] Per-level stat tables in data (remove placeholder formulas in `tower.gd`).
@@ -52,5 +51,5 @@ Known leftovers worth requesting when M4/M2 need them: tower ghost sprite, selec
 - Extension recipes: `tools/art/README.md`.
 
 ## State (paste into a new chat if one is cut off)
-Date: ____  Mode: GAME/ART  Milestone: ____
-Done: ____  Not finished / next: ____  Decisions: ____  Delta merged: yes/no
+Date: 2026-11-22  Mode: GAME  Milestone: M1 done
+Done: M1 core loop (GameState autoload, wave manager, economy, win/lose, speed). Not finished / next: M0 checklist items not explicitly confirmed (seams check, headless smoke test doc); then M2. Decisions: right click sells without confirmation until the M2 tower panel; balance is placeholder. Delta merged: yes

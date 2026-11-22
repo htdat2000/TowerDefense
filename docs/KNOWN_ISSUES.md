@@ -1,7 +1,6 @@
 # KNOWN ISSUES
 - The project has been written and statically checked but **never run in Godot** (this is the single place this is stated). M0 resolves it.
-- Untested first-run risks: `level.gd` (runtime TileSet + autotile painting), `tower.gd`/`monster.gd` (SpriteFrames from strips, frame events), `placement_layer.gd` drawing, `main.gd` UI, Phase 5 VFX scripts.
-- M1 untested risks: `GameState` autoload registration in `project.godot`; `get_tree().paused` on game over with the Restart button (overlay CanvasLayer uses `PROCESS_MODE_ALWAYS`); wave clear detection (`wave_manager.gd` counts `died`/`reached_end` of wave monsters via the `counted` meta set in `main._spawn_monster`).
+- First-run risks (play-tested OK without major bugs at M1, but not formally checked against M0): `level.gd` (runtime TileSet + autotile painting), `tower.gd`/`monster.gd` (SpriteFrames from strips, frame events), `placement_layer.gd` drawing, `main.gd` UI, Phase 5 VFX scripts.
 - M1 balance (costs, rewards, wave sizes, start gold/lives) is placeholder; tower damage formulas in `tower.gd` still placeholder until M2.
 - Right click sells the tower under the cursor immediately (no confirmation) until the M2 tower panel exists.
 - Towers cannot be upgraded or sold while building or mid-upgrade (`can_upgrade` / `can_sell`).
