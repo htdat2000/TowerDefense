@@ -1,7 +1,7 @@
 # KNOWN ISSUES
 - The project has been written and statically checked but **never run in Godot** (this is the single place this is stated). M0 resolves it.
 - First-run risks (play-tested OK without major bugs at M1, but not formally checked against M0): `level.gd` (runtime TileSet + autotile painting), `tower.gd`/`monster.gd` (SpriteFrames from strips, frame events), `placement_layer.gd` drawing, `main.gd` UI, Phase 5 VFX scripts.
-- M2 is written but NOT yet tested by the user: `targeting.gd`, splash in `projectile.gd`, the tower panel (anchored top-right PanelContainer in `main.gd`), selection ring in `placement_layer.gd`, 2x2 footprint path.
+- M2 (targeting, splash, tower panel, selection ring) was play-tested by the user with no noticeable bugs. The 2x2 footprint path was written for M2 but has no art yet.
 - Balance (costs, rewards, wave sizes, start gold/lives, per-level tower stats) is placeholder. Frost splash applies slow/freeze to every monster in the radius: probably strong, tune in `towers.json`.
 - `towers.json` keeps top-level `damage`, `range_cells`, `cooldown`, `statuses` as a Lv1 summary because `gen_catalog.py` and `validate.py` read them; the game reads `levels[]`. Keep Lv1 in sync by hand, or teach those tools to read `levels[]` (ART-mode task).
 - No 2x2 tower art: a 2x2 footprint works in code, but the 96 px sprite sits small inside the 128 px footprint.

@@ -18,11 +18,11 @@ Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/des
 - [x] Reaching the end costs lives; kills give gold (data-driven); win/lose.
 - [x] Tower cost, sell refund, upgrade cost per level (data).
 - Done when a 10-wave level can be won or lost with correct gold/lives.
-### M2 Towers (WRITTEN, waiting for the user's test: tick each box only after it works in Godot)
-- [ ] Per-level stat tables in data (`towers.json` levels[]; placeholder formulas removed from `tower.gd`).
-- [ ] Targeting modes first/last/strongest/closest (`targeting.gd`); selected-tower panel (range ring, stats, targeting, upgrade, sell with confirm).
-- [ ] Stone splash, Frost slow/freeze (also splash), Archer single target (data-driven).
-- [ ] 2x2 footprint support in placement code (data `footprint`; no 2x2 art yet, test by setting `"footprint": [2, 2]` on one tower).
+### M2 Towers (DONE, play-tested by user: features work, no noticeable bugs)
+- [x] Per-level stat tables in data (`towers.json` levels[]; placeholder formulas removed from `tower.gd`).
+- [x] Targeting modes first/last/strongest/closest (`targeting.gd`); selected-tower panel (range ring, stats, targeting, upgrade, sell with confirm).
+- [x] Stone splash, Frost slow/freeze (also splash), Archer single target (data-driven).
+- [x] 2x2 footprint support in placement code (data `footprint`; no 2x2 art yet, test by setting `"footprint": [2, 2]` on one tower).
 ### M3 Monsters
 - [ ] armor in data (hp/speed/reward/lives_cost already in `monsters.json` since M1); Boar burst, Mushroom spore, Treant armor.
 - [ ] Health bars finalised; per-monster status tint.
@@ -51,5 +51,5 @@ Known leftovers worth requesting when M4/M2 need them: tower ghost sprite, selec
 - Extension recipes: `tools/art/README.md`.
 
 ## State (paste into a new chat if one is cut off)
-Date: 2026-11-22  Mode: GAME  Milestone: M2 written, not yet tested
-Done: M1 core loop. M2 code written: per-level data tables, targeting.gd, splash in projectile.gd, tower panel + range ring, 2x2 footprint path, left click opens panel, sell needs two clicks, Esc/right click cancel. Next: user tests M2 (checklist in chat), report errors; then M0 leftovers (seams check, headless smoke test doc), then M3. Decisions: top-level damage/range_cells/cooldown/statuses in towers.json stay as Lv1 summary for the art tools; levels[] wins in game. Balance is placeholder. Delta merged: no
+Date: 2026-11-22  Mode: GAME  Milestone: M2 done
+Done: M1 core loop; M2 towers (levels[] data tables, targeting modes, splash, tower panel with two-click sell, 2x2 footprint code path), play-tested by user. Next: M0 leftovers (seams check, headless smoke test doc), then M3 Monsters (needs user approval). Decisions: top-level damage/range_cells/cooldown/statuses in towers.json stay as Lv1 summary for the art tools; levels[] wins in game. Balance is placeholder. Delta merged: yes
