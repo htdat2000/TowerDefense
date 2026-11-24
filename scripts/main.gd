@@ -1,10 +1,11 @@
 extends Node2D
-## Playable prototype: Grassland map + data-driven waves + economy (M1) + tower panel and targeting (M2).
+## Playable prototype: Grassland map + data-driven waves + economy (M1) + tower panel and targeting (M2) + monster abilities (M3).
 ## Controls: pick a tower button -> hover map (green = valid and affordable, red = not) -> left click places it.
 ## Left click a placed tower (nothing picked) opens its panel: stats, targeting mode, upgrade, sell (two clicks).
 ## Right click or Esc: cancel the picked tower, or close the panel. "Start wave" sends the next wave from data/waves_*.json.
-## Debug keys: F1 freeze, F2 slow, F3 burning, F4 poison, F5 stun (all monsters, 4 s), F6 spawn a boss Treant.
-## All gameplay numbers (costs, rewards, waves, hp, damage) come from data/*.json and are PLACEHOLDERS.
+## Debug keys: F1 freeze, F2 slow, F3 burning, F4 poison, F5 stun (all monsters, 4 s), F6 spawn a boss Treant,
+## F7 spawn a Boar, Q spawn a Mushroom, W hit every monster for 10 damage (shows armor and lets spores heal).
+## All gameplay numbers (costs, rewards, waves, hp, armor, damage) come from data/*.json and are PLACEHOLDERS.
 ## Run state (gold, lives, wave, speed) lives in the GameState autoload; wave timing in wave_manager.gd.
 
 const Data = preload("res://scripts/data.gd")
@@ -102,7 +103,7 @@ func _build_ui() -> void:
     layer.add_child(msg)
     hint = Label.new()
     hint.position = Vector2(12, 716)
-    hint.text = "Pick a tower, click a green cell to build. Click a placed tower to open its panel. Right click or Esc: cancel / close.\nDebug: F1 freeze  F2 slow  F3 burning  F4 poison  F5 stun  F6 boss"
+    hint.text = "Pick a tower, click a green cell to build. Click a placed tower to open its panel. Right click or Esc: cancel / close.\nDebug: F1 freeze  F2 slow  F3 burning  F4 poison  F5 stun  F6 boss  F7 boar  Q mushroom  W hit all (10)"
     layer.add_child(hint)
     _build_panel(layer)
     _build_overlay()
@@ -395,6 +396,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
                 m.apply_status(String(DEBUG_STATUS_KEYS[k.keycode]), 4.0)
     elif k.keycode == KEY_F6:
         _spawn_monster("treant", true)
+    elif k.keycode == KEY_F7:
+        _spawn_monster("boar")
+    elif k.keycode == KEY_Q:
+        _spawn_monster("mushroom")
+    elif k.keycode == KEY_W:
+        for m in monsters:
+            if is_instance_valid(m) and m.is_alive():
+                m.take_damage(10.0, false)
     elif k.keycode == KEY_ESCAPE:
         _cancel_selection()
 
@@ -466,9 +475,10 @@ func _spawn_monster(id: String, as_boss := false, counted := false) -> void:
     var m = MonsterScript.new()
     m.set_meta("counted", counted)          # counted = belongs to a wave (debug spawns do not hold a wave open)
     level.actors.add_child(m)
-    m.add_to_group("monsters")              # splash damage looks monsters up through this group
+    m.add_to_group("monsters")              # splash damage and spore healing look monsters up through this group
     m.vfx_requested.connect(_play_vfx)
     m.damaged.connect(_on_monster_damaged)
+    m.healed.connect(_on_monster_healed)
     m.died.connect(_on_monster_died)
     m.reached_end.connect(_on_monster_reached_end)
     var d: Dictionary = monsters_data[id].duplicate()
@@ -499,6 +509,15 @@ func _on_monster_damaged(m, amount: float, is_crit: bool) -> void:
     n.setup(maxi(int(round(amount)), 1), "crit" if is_crit else "normal")
     if is_crit:
         _play_vfx("critical_hit", m.global_position, float(m.data["frame"]) / 64.0)
+
+func _on_monster_healed(m, amount: float) -> void:
+    if not is_instance_valid(m):
+        return
+    var top: float = float(m.data["frame"]) * 0.4
+    var n = DamageNumber.new()
+    level.vfx.add_child(n)
+    n.position = m.global_position + Vector2(0.0, -top)
+    n.setup(maxi(int(round(amount)), 1), "heal")
 
 func _on_tower_fired(tower, tgt) -> void:
     if not is_instance_valid(tgt):
