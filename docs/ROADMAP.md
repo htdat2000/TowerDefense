@@ -3,15 +3,16 @@
 ## Done (art, frozen)
 Phases 1-5: art direction, Grassland (47-tile autotiles, grid layers), 3 towers x 5 levels, 5 monsters x 4 directions, 36 VFX. Details: `docs/ASSET_CATALOG.md`.
 
-## Already written in Godot, not yet run
-Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/destroy), monster (4-dir, path, hit, death), projectile, status effects (freeze/slow/stun/burning/poison), damage numbers, crit, VFX library, boss spawn debug key.
+## Already written in Godot
+Level builder, grid logic/render/placement, tower (build/idle/attack/upgrade/destroy), monster (4-dir, path, hit, death), projectile, status effects (freeze/slow/stun/burning/poison), damage numbers, crit, VFX library, boss spawn debug key. M1 and M2 features were play-tested by the user.
 
 ## GAME milestones
-### M0 First run (do first)
-- [ ] Open in Godot, import, run `main.tscn`; fix every error/warning.
-- [ ] Verify: map, grid toggle, towers build+idle, wave start, monster directions, tower aiming/firing, impacts, hit/death, F1-F6 debug keys.
-- [ ] Seams/filtering check; record oddities in KNOWN_ISSUES.
-- [ ] Smoke test documented (`godot --headless --path . --quit-after 600`).
+### M0 First run (DONE, user-verified 2026-11-24: automated checks, manual checklist and seams check all pass)
+Run by user 2026-11-24: smoke test 621 checks / 0 failed, import and 600-frame headless run with no errors or warnings, validate.py 0 errors. Written: `scripts/smoke_test.gd` + `scripts/smoke_checks.gd` (headless data/asset/gameplay checks), `docs/M0_CHECKLIST.md` (commands, manual list, seams procedure). 
+- [x] Open in Godot, import, run `main.tscn`; fix every error/warning. (Headless import + run clean; prep fix: `damage_number.gd` `set_name` shadow warning.)
+- [x] Verify: map, grid toggle, towers build+idle, wave start, monster directions, tower aiming/firing, impacts, hit/death, F1-F6 debug keys (list in `docs/M0_CHECKLIST.md` section 2).
+- [x] Seams/filtering check; record oddities in KNOWN_ISSUES (procedure: checklist section 3).
+- [x] Smoke test documented AND run: command in README, output reported (`godot --headless --path . --fixed-fps 60 -s res://scripts/smoke_test.gd`).
 ### M1 Core loop (DONE, play-tested by user: no major bugs)
 - [x] Autoload `game_state.gd` (gold, lives, wave, speed + signals).
 - [x] `data/waves_grassland_01.json` + wave manager, next-wave button.
@@ -51,5 +52,5 @@ Known leftovers worth requesting when M4/M2 need them: tower ghost sprite, selec
 - Extension recipes: `tools/art/README.md`.
 
 ## State (paste into a new chat if one is cut off)
-Date: 2026-11-22  Mode: GAME  Milestone: M2 done
-Done: M1 core loop; M2 towers (levels[] data tables, targeting modes, splash, tower panel with two-click sell, 2x2 footprint code path), play-tested by user. Next: M0 leftovers (seams check, headless smoke test doc), then M3 Monsters (needs user approval). Decisions: top-level damage/range_cells/cooldown/statuses in towers.json stay as Lv1 summary for the art tools; levels[] wins in game. Balance is placeholder. Delta merged: yes
+Date: 2026-11-24  Mode: GAME  Milestone: M0 done
+Done: M1 core loop; M2 towers (play-tested by user). M0 automated part: smoke test 621/0, import and headless run clean, validate.py 0 errors. M0 prep files: headless smoke test (`scripts/smoke_test.gd`, `scripts/smoke_checks.gd`), `docs/M0_CHECKLIST.md`, README/KNOWN_ISSUES updated, `damage_number.gd` shadow-warning fix. User ran the manual checklist and seams check: all pass, no known bugs. Next: M3 Monsters (needs user approval). Decisions: top-level damage/range_cells/cooldown/statuses in towers.json stay as Lv1 summary for the art tools; levels[] wins in game. Balance is placeholder. Delta merged: yes

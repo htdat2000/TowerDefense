@@ -1,13 +1,14 @@
 # KNOWN ISSUES
-- The project has been written and statically checked but **never run in Godot** (this is the single place this is stated). M0 resolves it.
-- First-run risks (play-tested OK without major bugs at M1, but not formally checked against M0): `level.gd` (runtime TileSet + autotile painting), `tower.gd`/`monster.gd` (SpriteFrames from strips, frame events), `placement_layer.gd` drawing, `main.gd` UI, Phase 5 VFX scripts.
-- M2 (targeting, splash, tower panel, selection ring) was play-tested by the user with no noticeable bugs. The 2x2 footprint path was written for M2 but has no art yet.
+- M1 (core loop) and M2 (towers) were play-tested by the user without noticeable bugs, so the project does run. M0: smoke test (621 checks, 0 failed), headless import and run, and validate.py all pass (user-run 2026-11-24). The manual visual checklist and the seams check also passed (user-run). No known bugs at the end of M0.
+- Never executed by the author: Claude has no Godot in chat. Every "works" claim comes from the user's runs.
 - Balance (costs, rewards, wave sizes, start gold/lives, per-level tower stats) is placeholder. Frost splash applies slow/freeze to every monster in the radius: probably strong, tune in `towers.json`.
 - `towers.json` keeps top-level `damage`, `range_cells`, `cooldown`, `statuses` as a Lv1 summary because `gen_catalog.py` and `validate.py` read them; the game reads `levels[]`. Keep Lv1 in sync by hand, or teach those tools to read `levels[]` (ART-mode task).
 - No 2x2 tower art: a 2x2 footprint works in code, but the 96 px sprite sits small inside the 128 px footprint.
 - With a 2x2 footprint the cursor cell is the top-left cell (not centred).
 - Towers cannot be upgraded or sold while building or mid-upgrade (`can_upgrade` / `can_sell`).
-- Tile layers use Nearest filtering to avoid seams; fractional zoom may still show seams (add atlas padding or use integer scaling).
+- Tile layers use Nearest filtering to avoid seams (no seams seen at the sizes tried in M0).
+- Monster health bars are drawn in `monster.gd._draw` (below the child sprites); fine for current art, revisit in M3.
 - Preview-only: ice explosion offset in `prototype_with_starter_towers.png` (not a sprite bug).
 - `project.godot` features says "4.7"; README says 4.3+. Minimum is 4.3 (TileMapLayer).
-- New `.gd.uid` files (`game_state.gd`, `wave_manager.gd`, `targeting.gd`) are created by Godot on first import; commit them.
+- `.gd.uid` files are created by Godot on first import; commit them (`smoke_test.gd.uid`, `smoke_checks.gd.uid` will appear after the first import).
+- Fixed in M0 prep (written, not run): `damage_number.gd` local variable `set_name` shadowed `Node.set_name()` (engine warning); renamed to `glyph_set`.

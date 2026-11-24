@@ -5,6 +5,13 @@ Open this folder in **Godot 4.3+** (developed against 4.7.x), wait for the impor
 ## Controls
 Pick a tower (button shows its cost) -> hover (green = valid and affordable, red = not) -> left click to place. Left click a placed tower (with nothing picked) to open its panel: current and next-level stats, targeting mode (First / Last / Strongest / Closest), Upgrade (Lv1-5, costs gold) and Sell (click twice to confirm, refund from data). Right click or Esc cancels the picked tower or closes the panel. "Start wave N" sends the next wave; the level is won after wave 10 is cleared and lost when lives reach 0. "Speed" cycles x1/x2/x3. "Toggle grid" shows/hides the grid. Debug: F1 freeze, F2 slow, F3 burning, F4 poison, F5 stun, F6 boss Treant.
 
+## Smoke test (headless)
+```
+godot --headless --path . --import
+godot --headless --path . --fixed-fps 60 -s res://scripts/smoke_test.gd
+```
+Checks data, asset sizes/imports, then plays the scene (towers, wave, statuses, upgrades, panel, sell, defeat, restart). Exit code 0 = all checks passed. Details and the manual checklist: `docs/M0_CHECKLIST.md`. Static (no Godot): `python3 tools/art/validate.py`.
+
 ## Build / export
 Project > Export. Presets are not created yet (ROADMAP M7).
 

@@ -4,11 +4,11 @@ extends Node2D
 const VFX = preload("res://scripts/vfx_library.gd")
 
 func setup(amount: int, kind: String = "normal") -> void:
-    var set_name := "damage_digits_" + kind
+    var glyph_set := "damage_digits_" + kind      # not "set_name": that would shadow Node.set_name()
     var text := str(maxi(amount, 0))
     if kind == "heal":
         text = "+" + text
-    var info := VFX.info(set_name)
+    var info := VFX.info(glyph_set)
     if info.is_empty():
         queue_free()
         return
@@ -16,7 +16,7 @@ func setup(amount: int, kind: String = "normal") -> void:
     var total := adv * text.length()
     for i in text.length():
         var s := Sprite2D.new()
-        s.texture = VFX.glyph_texture(set_name, text[i])
+        s.texture = VFX.glyph_texture(glyph_set, text[i])
         s.position = Vector2(-total * 0.5 + adv * (i + 0.5), 0.0)
         add_child(s)
     var rise := 34.0 if kind == "crit" else 26.0
