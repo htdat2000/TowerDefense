@@ -2,9 +2,9 @@ extends RefCounted
 ## Tower target selection. Static helper, no instance needed:
 ##   const Targeting = preload("res://scripts/targeting.gd")
 ##   var m = Targeting.pick("first", tower_pos, range_px, monsters)
-## Modes: first = furthest along the path, last = least far along the path,
+## Modes: first = closest to the character along the monster route, last = furthest from the character,
 ## strongest = highest current hp, closest = nearest to the tower.
-## Monsters need: is_alive(), global_position, dist (path distance), hp.
+## Monsters need: is_alive(), global_position, path_left (route distance to the character in px), hp.
 
 const MODES := ["first", "last", "strongest", "closest"]
 const LABELS := {"first": "First", "last": "Last", "strongest": "Strongest", "closest": "Closest"}
@@ -34,10 +34,10 @@ static func pick(mode: String, from: Vector2, range_px: float, monsters: Array) 
 static func _score(mode: String, m, d: float) -> float:
     match mode:
         "last":
-            return -float(m.dist)
+            return float(m.path_left)
         "strongest":
             return float(m.hp)
         "closest":
             return -d
         _:
-            return float(m.dist)
+            return -float(m.path_left)

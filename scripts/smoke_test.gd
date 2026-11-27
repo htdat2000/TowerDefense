@@ -1,15 +1,16 @@
 extends SceneTree
-## M0 headless smoke test. WRITTEN, NOT RUN by the author: run it and report the output.
+## Headless smoke test for the chase-and-survive rules. WRITTEN, NOT RUN by the author: run it and report the output.
 ##   godot --headless --path . --import                                       (once, builds the import cache)
 ##   godot --headless --path . --fixed-fps 60 -s res://scripts/smoke_test.gd
-## Part 1 (smoke_checks.gd): data + asset checks. Part 2: plays main.tscn (place towers, wave, statuses, upgrades,
-## panel, speed, sell, defeat, restart). Prints a "FAIL ..." line per broken check, exit code 1 if any failed.
+## Part 1 (smoke_checks.gd): data, assets, wave generation, flow field unit tests.
+## Part 2 plays main.tscn: character and collision, building inside the radius, a timed wave, statuses, upgrades, panel, speed,
+## sell, one-hit tower destruction, character damage, defeat, restart. Prints a "FAIL ..." line per broken check, exit code 1 if any failed.
 ## Also scan the output for engine lines: SCRIPT ERROR, Parser Error, ERROR:, WARNING:.
 ## The timeline uses game time, so it also works without --fixed-fps (just slower).
 
 const Checks = preload("res://scripts/smoke_checks.gd")
 const MAIN_SCENE := "res://scenes/main.tscn"
-const MAX_TIME := 40.0
+const MAX_TIME := 45.0
 
 var _checks := Checks.new()
 var _main = null                 # main.gd instance (untyped on purpose: dynamic calls)
@@ -23,7 +24,7 @@ var _kills := 0
 var _start_gold := 0
 
 func _initialize() -> void:
-    print("== smoke test: data, assets, gameplay ==")
+    print("== smoke test: data, assets, flow field, gameplay ==")
     _gs = root.get_node_or_null("GameState")
     _checks.check(_gs != null, "autoload GameState is registered")
     _checks.run()
@@ -51,6 +52,7 @@ func _process(delta: float) -> bool:
         1:
             _upgrade_all()
             if in_phase >= 1.0:
+                _step_player()
                 _step_wave()
         2:
             _upgrade_all()
@@ -77,7 +79,7 @@ func _next(p: int) -> void:
 func _on_actor_added(n) -> void:               # untyped: towers and monsters have different signals
     if n.has_signal("fired"):
         n.fired.connect(_on_fired)
-    elif n.has_signal("died"):
+    elif n.has_signal("attacked_tower"):
         n.died.connect(_on_died)
 
 func _on_fired(_tower, _target) -> void:
@@ -97,31 +99,54 @@ func _step_setup() -> void:
     if _main.level == null:
         _next(5)
         return
+    _checks.check(_main.player != null and _main.player.alive, "the character exists and is alive")
     _main.level.actors.child_entered_tree.connect(_on_actor_added)
     _gs.add_gold(100000)
     _start_gold = _gs.gold
+    _main.player.max_hp = 1000000.0               # the test must not die before the defeat step
+    _main.player.hp = 1000000.0
+    _checks.check(_main.level.flow.dist_at(_main.player.cell) == 0.0, "flow field is centred on the character cell")
+    _checks.check(_main.level.flow.reachable(_main.level.entry_cell), "the monster entry reaches the character")
+    _checks.check(_main.wave_manager.in_prep(), "the run starts in the prepare phase")
     _main._select_tower("stone")
     _checks.check(_main.selected_id == "stone", "tower button selects a tower (placement preview ran)")
     _main._cancel_selection()
     _checks.check(_main.selected_id == "", "cancel clears the picked tower")
-    var cells: Array = _main.level.available_cells()
+    var near: Array = _main.level.available_cells(_main.player.global_position, _main._build_radius_px(), _main.player.cell)
     var ids: Array = _main.towers_data.keys()
-    _checks.check(cells.size() >= ids.size(), "buildable cells next to the path exist")
-    if cells.size() >= ids.size():
-        var step := maxi(floori(cells.size() / float(ids.size() + 1)), 1)
+    _checks.check(near.size() >= ids.size(), "buildable cells exist inside the build radius")
+    if near.size() >= ids.size():
+        var step := maxi(floori(near.size() / float(ids.size() + 1)), 1)
         for i in ids.size():
-            var c: Vector2i = cells[mini(i * step, cells.size() - 1)]
+            var c: Vector2i = near[mini(i * step, near.size() - 1)]
+            _checks.check(_main._can_build_here(c, Vector2i(1, 1)), "build rule accepts a free cell inside the radius %s" % c)
             _main._place_tower(String(ids[i]), c, 1)
             _checks.check(_main.level.grid.occupancy.has(c), "grid occupancy set at %s" % c)
         _checks.check(_main.towers.size() == ids.size(), "all towers placed")
+    _checks.check(not _main._can_build_here(_main.player.cell, Vector2i(1, 1)), "build rule refuses the character cell")
+    _checks.check(not _main._can_build_here(Vector2i(0, 0), Vector2i(1, 1)), "build rule refuses a cell outside the radius")
     _next(1)
 
+func _step_player() -> void:
+    var p = _main.player
+    var g = _main.level.grid
+    var start: Vector2i = p.cell
+    p._move(Vector2(-300.0, 0.0))                  # towards the water on the left of the start cell
+    _checks.check(not g.is_solid_for_player(p.cell), "the character does not enter water")
+    _checks.check(p.global_position.x >= 576.0, "the character is stopped at the water edge")
+    p.teleport(start)
+    _checks.check(p.cell == start, "teleport puts the character back")
+    if _main.towers.size() > 0:
+        var t0 = _main.towers[0]
+        _checks.check(not p._blocked(g.cell_center(t0.cell)), "towers do not block the character")
+    _checks.check(_main.level.flow.dist_at(p.cell) == 0.0, "flow field follows the character cell")
+
 func _step_wave() -> void:
-    _checks.check(_main.wave_manager.start_next(), "wave 1 starts")
-    _checks.check(_gs.wave == 1, "GameState.wave == 1")
+    _checks.check(_main.wave_manager.call_next_wave(), "call_next_wave skips the prepare countdown")
     _next(2)
 
 func _step_spawn_extras() -> void:
+    _checks.check(_gs.wave >= 1, "GameState.wave counts the started wave")
     for id in _main.monsters_data.keys():
         _main._spawn_monster(String(id), false)
     _main._spawn_monster("treant", true)             # same as debug key F6
@@ -145,6 +170,11 @@ func _step_verify() -> void:
     if _kills == 0:
         print("WARN  no monster died in the test window (balance or ranges?)")
     _checks.check(_gs.gold < _start_gold, "upgrades charged gold")
+    var chasing := 0
+    for m in _main.monsters:
+        if is_instance_valid(m) and m.is_alive() and m.path_left < 1.0e6:
+            chasing += 1
+    _checks.check(chasing > 0 or _main.monsters.is_empty(), "living monsters have a route to the character")
     # tower panel
     var t0 = _main.towers[0]
     _main._select_placed(t0)
@@ -166,9 +196,25 @@ func _step_verify() -> void:
     _main._try_sell(t0)
     _checks.check(not _main.level.grid.occupancy.has(cell), "sell frees the grid cell")
     _checks.check(_main.towers.size() == count - 1, "sell removes the tower from the list")
-    # defeat, then restart
-    _gs.lose_lives(_gs.lives)
-    _checks.check(_gs.finished and not _gs.victory, "lives 0 -> defeat")
+    # a monster destroys a tower in one hit: no refund, cell freed at once
+    var t1 = _main.towers[0]
+    var cell1: Vector2i = t1.cell
+    var gold_before: int = _gs.gold
+    _main._on_monster_attacked_tower(null, t1)
+    _checks.check(not _main.level.grid.occupancy.has(cell1), "a destroyed tower frees its grid cell at once")
+    _checks.check(not _main.towers.has(t1), "a destroyed tower leaves the tower list")
+    _checks.check(t1.is_destroyed(), "the tower plays its destroyed state")
+    _checks.check(_gs.gold == gold_before, "a destroyed tower gives no refund")
+    _main._on_monster_attacked_tower(null, t1)       # second hit on the same tower must do nothing
+    _checks.check(_main.towers.size() == count - 2, "a second hit on a destroyed tower is ignored")
+    # the character takes damage, then dies: defeat
+    var p = _main.player
+    var hp0: float = p.hp
+    _main._on_monster_attacked_player(null, 5.0)
+    _checks.check(p.hp < hp0, "monster attack damages the character")
+    p.take_damage(p.hp + 1.0)
+    _checks.check(not p.alive, "the character dies at 0 hp")
+    _checks.check(_gs.finished, "character death -> defeat")
     _checks.check(paused, "tree paused on game over")
     _checks.check(_main.overlay.visible, "result overlay visible")
     _main._on_restart_pressed()
@@ -181,8 +227,9 @@ func _step_after_restart() -> void:
     _checks.check(is_equal_approx(Engine.time_scale, 1.0), "time scale back to x1 after restart")
     _checks.check(not _gs.finished and _gs.wave == 0, "GameState reset after restart")
     if m != null and is_instance_valid(m):
-        _checks.check(_gs.lives == m.wave_manager.start_lives(), "lives reset from level data")
         _checks.check(_gs.gold == m.wave_manager.start_gold(), "gold reset from level data")
+        _checks.check(m.player.alive and is_equal_approx(m.player.hp, m.player.max_hp), "the character is back at full hp")
+        _checks.check(m.wave_manager.in_prep(), "the new run starts in the prepare phase")
 
 func _finish() -> bool:
     print("== %d checks passed, %d failed ==" % [_checks.passed, _checks.failed])

@@ -1,19 +1,26 @@
 extends Node2D
 ## Builds the Grassland level from data files using SEPARATE layers (bottom -> top):
 ## Ground, Water, Path (TileMapLayer, 47-tile blob autotiling) | Shadows, Decals, SmallDecor, Objects |
-## Grid (render only) | Placement overlay | Actors (towers + monsters, y-sorted) | Projectiles | Vfx.
+## Grid (render only) | Placement overlay | Actors (towers, monsters, player, y-sorted) | Projectiles | Vfx.
 ## Grid LOGIC lives in grid_manager.gd and does not depend on any of these nodes.
+## Chase rules: the flow field (flow_field.gd) is owned here, main.gd calls refresh_flow(cell) when the character changes cell
+## or a tower is placed, sold or destroyed. The old enemy_path of the map is only used for the monster entry (spawn point) and the decals.
 
 const Data = preload("res://scripts/data.gd")
 const GridManager = preload("res://scripts/grid_manager.gd")
 const GridRenderer = preload("res://scripts/grid_renderer.gd")
 const PlacementLayer = preload("res://scripts/placement_layer.gd")
+const FlowField = preload("res://scripts/flow_field.gd")
 
 const ENV := "res://assets/Environment/Grassland/"
 const NEIGHBORS := [[1, 0, -1], [2, 1, 0], [4, 0, 1], [8, -1, 0], [16, 1, -1], [32, 1, 1], [64, -1, 1], [128, -1, -1]]
 
 var grid := GridManager.new()
-var path_curve := Curve2D.new()
+var flow := FlowField.new()
+var ai: Dictionary = {}              # data/ai.json
+var player_cfg: Dictionary = {}      # data/player.json
+var spawn_point := Vector2.ZERO      # world position where monsters appear (one cell outside the map)
+var entry_cell := Vector2i.ZERO      # first map cell monsters walk into
 var ground: TileMapLayer
 var water: TileMapLayer
 var path_layer: TileMapLayer
@@ -34,7 +41,11 @@ func build() -> void:
     _map = Data.load_json("res://data/map_grassland_01.json")
     _meta = Data.load_json("res://data/grassland_tileset_32.json")
     var decor: Dictionary = Data.load_json("res://data/map_decor.json")
+    ai = Data.load_json("res://data/ai.json")
+    player_cfg = Data.load_json("res://data/player.json")
     grid.load_from_json(_map)
+    if bool(player_cfg.get("build_on_path", false)):
+        grid.build_types = ["buildable", "path"]
 
     var tile_set := _make_tileset(load(ENV + "grassland_tileset_32.png") as Texture2D)
     ground = _make_layer("Ground", tile_set, 0)
@@ -52,7 +63,7 @@ func build() -> void:
     _place_objects(decor)
     _scatter_small()
     _place_arrows()
-    _build_curve()
+    _build_spawn()
 
     grid_renderer = GridRenderer.new()
     grid_renderer.name = "Grid"
@@ -69,6 +80,10 @@ func build() -> void:
     actors.y_sort_enabled = true
     projectiles = _make_node("Projectiles", 25)
     vfx = _make_node("Vfx", 30)
+
+## Recompute the monster flow field towards the character cell (cheap: the grid has a few hundred cells).
+func refresh_flow(target_cell: Vector2i) -> void:
+    flow.compute(grid, target_cell, float(ai.get("free_cost", 1.0)), float(ai.get("tower_cost", 1000.0)))
 
 # ------------------------------------------------------------------ helpers
 func _make_node(n: String, z: int) -> Node2D:
@@ -207,24 +222,24 @@ func _place_arrows() -> void:
         var s := _add_sprite(decals, arrow, grid.cell_center(Vector2i(a)), true)
         s.rotation = (b - a).angle()
 
-func _build_curve() -> void:
+## Monsters appear one cell outside the map, in line with the first two enemy_path cells, and walk in.
+func _build_spawn() -> void:
     var pts: Array = _map["enemy_path"]
-    var cells: Array[Vector2i] = []
-    for p in pts:
-        cells.append(Vector2i(int(p[0]), int(p[1])))
-    var first_dir := Vector2(cells[1] - cells[0])
-    var last_dir := Vector2(cells[cells.size() - 1] - cells[cells.size() - 2])
-    path_curve.clear_points()
-    path_curve.add_point(grid.cell_center(cells[0]) - first_dir * 64.0)   # starts off-screen
-    for c in cells:
-        path_curve.add_point(grid.cell_center(c))
-    path_curve.add_point(grid.cell_center(cells[cells.size() - 1]) + last_dir * 64.0)
+    var c0 := Vector2i(int(pts[0][0]), int(pts[0][1]))
+    var c1 := Vector2i(int(pts[1][0]), int(pts[1][1]))
+    entry_cell = c0
+    spawn_point = grid.cell_center(c0) - Vector2(c1 - c0) * 64.0
 
-func available_cells() -> Array:
+## Buildable, free cells whose centre is within radius_px of `center` (the character), except the `exclude` cell.
+func available_cells(center: Vector2, radius_px: float, exclude: Vector2i) -> Array:
     var out: Array = []
-    for y in grid.rows:
-        for x in grid.cols:
+    var r := int(ceil(radius_px / 64.0)) + 1
+    var cc: Vector2i = grid.world_to_cell(center)
+    for y in range(maxi(cc.y - r, 0), mini(cc.y + r, grid.rows - 1) + 1):
+        for x in range(maxi(cc.x - r, 0), mini(cc.x + r, grid.cols - 1) + 1):
             var c := Vector2i(x, y)
-            if grid.is_buildable(c) and _near(c, ["path"]):
+            if c == exclude or not grid.is_buildable(c):
+                continue
+            if grid.cell_center(c).distance_to(center) <= radius_px:
                 out.append(c)
     return out

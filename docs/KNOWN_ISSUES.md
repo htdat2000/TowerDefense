@@ -1,14 +1,18 @@
 # KNOWN ISSUES
-- M1 (core loop) and M2 (towers) were play-tested by the user without noticeable bugs, so the project does run. M0: smoke test (621 checks, 0 failed), headless import and run, and validate.py all pass (user-run 2026-11-24). The manual visual checklist and the seams check also passed (user-run). No known bugs at the end of M0.
+- M0-M2 were run and play-tested by the user. M3 and the M4 chase-and-survive refactor (2026-11-25) were written WITHOUT running Godot: expect first-run errors, report the exact text.
 - Never executed by the author: Claude has no Godot in chat. Every "works" claim comes from the user's runs.
-- Balance (costs, rewards, wave sizes, start gold/lives, per-level tower stats) is placeholder. Frost splash applies slow/freeze to every monster in the radius: probably strong, tune in `towers.json`.
-- `towers.json` keeps top-level `damage`, `range_cells`, `cooldown`, `statuses` as a Lv1 summary because `gen_catalog.py` and `validate.py` read them; the game reads `levels[]`. Keep Lv1 in sync by hand, or teach those tools to read `levels[]` (ART-mode task).
-- No 2x2 tower art: a 2x2 footprint works in code, but the 96 px sprite sits small inside the 128 px footprint.
-- With a 2x2 footprint the cursor cell is the top-left cell (not centred).
-- Towers cannot be upgraded or sold while building or mid-upgrade (`can_upgrade` / `can_sell`).
+- Old smoke test result (621 checks) no longer applies: `smoke_test.gd` / `smoke_checks.gd` were rewritten for the new rules.
+- Balance is placeholder: monster damage, character hp 100 / speed 150, build radius 4 cells, prepare 30 s, wave interval 25 s, endless scaling, costs, rewards. Frost splash applies slow/freeze to every monster in the radius: probably strong.
+- Placeholder character art: a circle drawn in `player.gd._draw`. Art request is in ROADMAP.
+- Monsters do not collide with each other: they stack on the same route. Separation is planned for M6.
+- Monsters stand still when no route exists at all (player enclosed by water / blocked cells only). Not possible with towers alone because towers are crossable at high cost.
+- With `build_on_path` false (default) the road cells cannot be built on, so the road is always a free corridor. Set it to true in `data/player.json` to allow full mazes.
+- A monster inside a cell where a tower is built walks out normally (no crush, no stuck).
+- Hit animations do not interrupt an attack animation, but starting an attack cancels a hit animation.
+- The character has no attack and no invulnerability frames; only the monster cooldown limits damage.
+- `towers.json` keeps top-level `damage`, `range_cells`, `cooldown`, `statuses` as a Lv1 summary because `gen_catalog.py` and `validate.py` read them; the game reads `levels[]`.
+- No 2x2 tower art: a 2x2 footprint works in code, but the 96 px sprite sits small inside the 128 px footprint. With a 2x2 footprint the cursor cell is the top-left cell.
+- Towers cannot be upgraded or sold while building or mid-upgrade. A tower destroyed by a monster while building or upgrading is handled (guard flags in `tower.gd`).
 - Tile layers use Nearest filtering to avoid seams (no seams seen at the sizes tried in M0).
-- Monster health bars are drawn in `monster.gd._draw` (below the child sprites); fine for current art, revisit in M3.
-- Preview-only: ice explosion offset in `prototype_with_starter_towers.png` (not a sprite bug).
 - `project.godot` features says "4.7"; README says 4.3+. Minimum is 4.3 (TileMapLayer).
-- `.gd.uid` files are created by Godot on first import; commit them (`smoke_test.gd.uid`, `smoke_checks.gd.uid` will appear after the first import).
-- Fixed in M0 prep (written, not run): `damage_number.gd` local variable `set_name` shadowed `Node.set_name()` (engine warning); renamed to `glyph_set`.
+- `.gd.uid` files are created by Godot on first import; commit them (`player.gd.uid`, `flow_field.gd.uid` will appear after the first import).

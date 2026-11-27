@@ -1,35 +1,28 @@
 extends Node
-## Autoload "GameState": run-wide state (gold, lives, wave, speed) and its signals.
-## No gameplay numbers live here: starting values are passed to reset() from the level data (data/waves_*.json).
-## Signals go up; UI and main.gd listen. Never connect lambdas to this autoload (they outlive scene reloads).
+## Autoload "GameState": run-wide state (gold, wave, speed) and its signals.
+## The character's hp lives in player.gd. The run is endless: it only ends when the character dies (defeat).
+## No gameplay numbers live here: the starting gold is passed to reset() from the level data (data/waves_*.json).
+## Signals go up; UI and main.gd listen. Never connect lambdas to this autoload, they outlive scene reloads.
 
 signal gold_changed(gold: int)
-signal lives_changed(lives: int)
-signal wave_changed(wave: int, total: int)
+signal wave_changed(wave: int)
 signal speed_changed(speed: float)
-signal game_over(won: bool)
+signal game_over(wave_reached: int)
 
 const SPEEDS := [1.0, 2.0, 3.0]
 
 var gold := 0
-var lives := 0
-var wave := 0            # number of waves started so far
-var total_waves := 0
+var wave := 0            # number of waves started so far, also the score
 var speed := 1.0
 var finished := false
-var victory := false
 
-func reset(start_gold: int, start_lives: int, waves_total: int) -> void:
+func reset(start_gold: int) -> void:
     gold = start_gold
-    lives = start_lives
     wave = 0
-    total_waves = waves_total
     finished = false
-    victory = false
     set_speed(1.0)
     gold_changed.emit(gold)
-    lives_changed.emit(lives)
-    wave_changed.emit(wave, total_waves)
+    wave_changed.emit(wave)
 
 func can_afford(cost: int) -> bool:
     return gold >= cost
@@ -47,22 +40,15 @@ func add_gold(amount: int) -> void:
     gold = maxi(gold + amount, 0)
     gold_changed.emit(gold)
 
-func lose_lives(amount: int) -> void:
-    if finished or amount <= 0:
-        return
-    lives = maxi(lives - amount, 0)
-    lives_changed.emit(lives)
-    if lives == 0:
-        _finish(false)
-
 func set_wave(w: int) -> void:
     wave = w
-    wave_changed.emit(wave, total_waves)
+    wave_changed.emit(wave)
 
-func win() -> void:
+func defeat() -> void:
     if finished:
         return
-    _finish(true)
+    finished = true
+    game_over.emit(wave)
 
 func set_speed(s: float) -> void:
     speed = s
@@ -72,8 +58,3 @@ func set_speed(s: float) -> void:
 func cycle_speed() -> void:
     var i: int = SPEEDS.find(speed)
     set_speed(float(SPEEDS[(i + 1) % SPEEDS.size()]))
-
-func _finish(did_win: bool) -> void:
-    finished = true
-    victory = did_win
-    game_over.emit(did_win)

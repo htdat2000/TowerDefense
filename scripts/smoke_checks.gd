@@ -1,13 +1,17 @@
 extends RefCounted
-## Data + asset checks for the M0 smoke test (used by smoke_test.gd, can also be run on its own).
+## Data + asset + logic checks for the headless smoke test (used by smoke_test.gd, can also be run on its own).
 ## Unlike tools/art/validate.py this goes through Godot's importer: a PNG that exists on disk but was never
 ## imported (or has the wrong size) fails here. Only failures are printed; counts are in passed / failed.
+## Also unit-tests the flow field (detours, siege route through towers) on tiny in-memory grids.
 
 const Data = preload("res://scripts/data.gd")
+const GridManager = preload("res://scripts/grid_manager.gd")
+const FlowField = preload("res://scripts/flow_field.gd")
+const WaveManager = preload("res://scripts/wave_manager.gd")
 
 const TOWER_KEYS := ["name", "folder", "frame", "head_rotates", "event_frame", "muzzle", "projectile",
     "projectile_speed", "impact", "cost", "sell_refund", "upgrade_costs", "levels"]
-const MONSTER_KEYS := ["folder", "frame", "stride", "hp", "speed", "tint", "reward", "lives_cost"]
+const MONSTER_KEYS := ["folder", "frame", "stride", "hp", "speed", "tint", "reward", "damage", "attack_cooldown"]
 const TOWER_STRIPS := {"spawn": 10, "base_idle": 0, "head_idle": 0, "head_attack": 8, "destroyed": 10, "base": 1, "head_static": 1}
 const MONSTER_ANIMS := {"idle": 6, "walk": 8, "attack": 8, "hit": 4, "death": 10}
 const DIRS := ["E", "S", "W", "N"]
@@ -32,6 +36,7 @@ var towers: Dictionary = {}
 var monsters: Dictionary = {}
 var vfx: Dictionary = {}
 var status: Dictionary = {}
+var map: Dictionary = {}
 
 func check(ok: bool, what: String) -> void:
     if ok:
@@ -45,10 +50,13 @@ func run() -> void:
     monsters = _load_dict("res://data/monsters.json")
     vfx = _load_dict("res://data/vfx.json")
     status = _load_dict("res://data/status_effects.json")
+    map = _load_dict("res://data/map_grassland_01.json")
     _check_towers()
     _check_monsters()
     _check_waves()
     _check_map()
+    _check_player_ai()
+    _check_flow_field()
     _check_assets()
 
 func _load_dict(path: String) -> Dictionary:
@@ -84,22 +92,40 @@ func _check_monsters() -> void:
             check(m.has(key), "monster %s: key '%s'" % [id, key])
         var tint: Array = m.get("tint", [])
         check(tint.size() == 3, "monster %s: tint needs 3 values" % id)
+        check(float(m.get("damage", 0.0)) > 0.0, "monster %s: damage must be above 0" % id)
+        check(float(m.get("attack_cooldown", 0.0)) > 0.0, "monster %s: attack_cooldown must be above 0" % id)
 
 func _check_waves() -> void:
-    var waves := _load_dict("res://data/waves_grassland_01.json")
-    var list: Array = waves.get("waves", [])
+    var cfg := _load_dict("res://data/waves_grassland_01.json")
+    var list: Array = cfg.get("waves", [])
     check(list.size() > 0, "waves file has waves")
+    check(float(cfg.get("prepare_time", 0.0)) > 0.0, "waves: prepare_time above 0")
+    check(float(cfg.get("wave_interval", 0.0)) >= 1.0, "waves: wave_interval at least 1 s")
     for w in list:
         var wd: Dictionary = w
         for g in wd.get("groups", []):
             var gd: Dictionary = g
             check(monsters.has(String(gd.get("monster", ""))), "waves: unknown monster '%s'" % gd.get("monster", ""))
-    for st in waves.get("start_towers", []):
+    var e: Dictionary = cfg.get("endless", {})
+    for id in e.get("pool", []):
+        check(monsters.has(String(id)), "waves: endless pool has unknown monster '%s'" % id)
+    if e.has("boss"):
+        check(monsters.has(String(e["boss"])), "waves: endless boss is unknown")
+    for st in cfg.get("start_towers", []):
         var sd: Dictionary = st
         check(towers.has(String(sd.get("id", ""))), "waves: unknown start tower '%s'" % sd.get("id", ""))
+    # endless generation must keep producing valid waves
+    var wm = WaveManager.new()
+    check(wm.load_level("res://data/waves_grassland_01.json"), "wave manager loads the level")
+    var far: Dictionary = wm.wave_at(list.size() + 7)
+    check(not (far.get("groups", []) as Array).is_empty(), "endless wave has groups")
+    check(float(far.get("hp_mult", 1.0)) > 1.0, "endless waves scale monster hp")
+    for g in far.get("groups", []):
+        var gd: Dictionary = g
+        check(monsters.has(String(gd.get("monster", ""))), "endless wave: unknown monster '%s'" % gd.get("monster", ""))
+    wm.free()
 
 func _check_map() -> void:
-    var map := _load_dict("res://data/map_grassland_01.json")
     var cols := int(map.get("cols", 0))
     var rows := int(map.get("rows", 0))
     var cells: Array = map.get("cells", [])
@@ -118,6 +144,63 @@ func _check_map() -> void:
         if prev.x != -99:
             check(absi(c.x - prev.x) + absi(c.y - prev.y) == 1, "map: enemy_path jumps between %s and %s" % [prev, c])
         prev = c
+
+func _check_player_ai() -> void:
+    var p := _load_dict("res://data/player.json")
+    for key in ["hp", "speed", "collision_radius", "build_radius_cells", "start_cell"]:
+        check(p.has(key), "player.json: key '%s'" % key)
+    var sc: Array = p.get("start_cell", [0, 0])
+    var cells: Array = map.get("cells", [])
+    if sc.size() == 2 and cells.size() > 0:
+        var x := int(sc[0])
+        var y := int(sc[1])
+        var ok := y >= 0 and y < cells.size() and x >= 0 and x < (cells[0] as Array).size()
+        check(ok, "player.json: start_cell is inside the map")
+        if ok:
+            var t := String(cells[y][x])
+            check(t == "buildable" or t == "path", "player.json: start_cell must be walkable, is '%s'" % t)
+    var ai := _load_dict("res://data/ai.json")
+    for key in ["free_cost", "tower_cost", "default_attack_range_px", "tower_attack_range_px"]:
+        check(ai.has(key), "ai.json: key '%s'" % key)
+    check(float(ai.get("tower_cost", 0.0)) > 100.0 * float(ai.get("free_cost", 1.0)), "ai.json: tower_cost must be much higher than free_cost")
+
+func _grid_open(cols: int, rows: int) -> Object:
+    var g = GridManager.new()
+    var cells: Array = []
+    for y in rows:
+        var row: Array = []
+        for x in cols:
+            row.append("buildable")
+        cells.append(row)
+    g.load_from_json({"cols": cols, "rows": rows, "cells": cells})
+    return g
+
+func _check_flow_field() -> void:
+    var g = _grid_open(5, 3)
+    var ff = FlowField.new()
+    var tgt := Vector2i(4, 1)
+    ff.compute(g, tgt, 1.0, 1000.0)
+    check(is_equal_approx(ff.dist_at(Vector2i(0, 1)), 4.0), "flow field: open grid distance is 4")
+    check(ff.dist_at(tgt) == 0.0, "flow field: target distance is 0")
+    check(ff.next_cell(Vector2i(0, 1)) == Vector2i(1, 1), "flow field: steps toward the target")
+    var wall := RefCounted.new()
+    g.place(Vector2i(2, 0), Vector2i(1, 1), wall)
+    g.place(Vector2i(2, 1), Vector2i(1, 1), wall)
+    ff.compute(g, tgt, 1.0, 1000.0)
+    check(ff.dist_at(Vector2i(0, 1)) < 100.0, "flow field: a gap in the wall is used, no tower is crossed")
+    check(ff.next_cell(Vector2i(1, 1)) == Vector2i(1, 2), "flow field: monsters walk around the wall through the gap")
+    g.place(Vector2i(2, 2), Vector2i(1, 1), wall)
+    ff.compute(g, tgt, 1.0, 1000.0)
+    check(ff.dist_at(Vector2i(0, 1)) >= 1000.0, "flow field: sealed wall costs a tower crossing")
+    check(g.occupancy.has(ff.next_cell(Vector2i(1, 1))), "flow field: sealed wall, next cell is a tower (siege)")
+    g.remove(wall)
+    ff.compute(g, tgt, 1.0, 1000.0)
+    check(is_equal_approx(ff.dist_at(Vector2i(0, 1)), 4.0), "flow field: route is free again after the wall is gone")
+    var w2 = _grid_open(3, 1)
+    w2.types[0][1] = "water"
+    ff.compute(w2, Vector2i(2, 0), 1.0, 1000.0)
+    check(not ff.reachable(Vector2i(0, 0)), "flow field: water is never crossed")
+    check(ff.next_cell(Vector2i(0, 0)) == Vector2i(0, 0), "flow field: no route means stay in place")
 
 func _check_strip(path: String, fw: int, fh: int, frames: int) -> void:
     if not ResourceLoader.exists(path):

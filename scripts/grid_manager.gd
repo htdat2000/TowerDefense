@@ -1,12 +1,15 @@
 extends RefCounted
 ## GRID LOGIC ONLY (no rendering). Stays valid when the grid is hidden.
 ## Logical cell = 64 px (2x2 art tiles of 32 px). Cell types come from map_*.json.
+## Rules: monsters walk on path and buildable cells, never on water, blocked or towers.
+## The player is stopped only by water and blocked cells, towers do not block the player.
 
 const CELL := 64
 var cols := 0
 var rows := 0
 var types: Array = []            # types[y][x] = "path" | "water" | "blocked" | "buildable"
 var occupancy: Dictionary = {}   # Vector2i -> tower node
+var build_types: Array = ["buildable"]   # cell types a tower may be built on, set by level.gd from data/player.json
 
 func load_from_json(d: Dictionary) -> void:
     cols = int(d["cols"])
@@ -31,8 +34,16 @@ func cell_center(c: Vector2i) -> Vector2:
 func footprint_center(c: Vector2i, size: Vector2i) -> Vector2:
     return (Vector2(c) + Vector2(size) * 0.5) * CELL
 
+func walkable(c: Vector2i) -> bool:
+    var t := type_at(c)
+    return t == "path" or t == "buildable"
+
+func is_solid_for_player(c: Vector2i) -> bool:
+    var t := type_at(c)
+    return t == "water" or t == "blocked"
+
 func is_buildable(c: Vector2i) -> bool:
-    return type_at(c) == "buildable" and not occupancy.has(c)
+    return build_types.has(type_at(c)) and not occupancy.has(c)
 
 func can_place(c: Vector2i, size: Vector2i) -> bool:
     for y in size.y:

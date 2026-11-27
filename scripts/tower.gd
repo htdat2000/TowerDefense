@@ -1,11 +1,12 @@
 extends Node2D
-## Tower = fixed BASE layer + rotating HEAD layer (+ separate shadow).
+## Tower = fixed BASE layer + rotating HEAD layer (+ separate shadow). Towers have NO hp: a monster that attacks one destroys it in one hit
+## (main.gd calls destroy() and frees the grid cell at once, no refund). Selling still refunds.
 ## Base frames: build / idle / destroyed. Head frames: idle / attack (head art faces EAST, pivot = centre).
 ## Towers 'build' first; after that they can fire. upgrade() plays the upgrade VFX and swaps to the next of 5 levels.
 ## VFX are requested through the vfx_requested signal (the level owner plays them), so this script has no scene dependencies.
 ## Economy: cost, upgrade_costs and sell_refund come from data/towers.json. `invested` = gold put into this tower;
 ## main.gd charges GameState, the tower only reports prices (upgrade_cost, sell_value) and tracks `invested`.
-## M2: every combat number comes from data/towers.json levels[] (index 0 = Lv1) through stat() / stat_at().
+## Every combat number comes from data/towers.json levels[] (index 0 = Lv1) through stat() / stat_at().
 ## A key missing in the level entry falls back to the tower's top-level key, then to the given default.
 
 const SFB = preload("res://scripts/sprite_frames_builder.gd")
@@ -35,6 +36,7 @@ var _cooldown_left := 0.0
 var _fire_target: Node2D = null
 var _event_done := true
 var _upgrading := false
+var _destroyed := false
 
 static func footprint_of(tower_data: Dictionary) -> Vector2i:
     var fp: Array = tower_data.get("footprint", [1, 1])
@@ -143,10 +145,10 @@ func upgrade_cost() -> int:
     return int(costs[level - 1])
 
 func can_upgrade() -> bool:
-    return built and not _upgrading and upgrade_cost() >= 0
+    return built and not _upgrading and not _destroyed and upgrade_cost() >= 0
 
 func can_sell() -> bool:
-    return built and not _upgrading
+    return built and not _upgrading and not _destroyed
 
 func sell_value() -> int:
     return floori(float(invested) * float(data.get("sell_refund", 0.7)))
@@ -168,6 +170,8 @@ func upgrade() -> bool:
     return true
 
 func _finish_upgrade() -> void:
+    if _destroyed:
+        return
     level += 1
     _reload_frames()
     base.play("idle")
@@ -175,11 +179,20 @@ func _finish_upgrade() -> void:
     _upgrading = false
     state_changed.emit(self)
 
+## Called by main.gd when a monster destroys this tower. Safe at any time, also while building or upgrading.
 func destroy() -> void:
+    if _destroyed:
+        return
+    _destroyed = true
     built = false
+    _upgrading = false
+    target = null
     head.visible = false
     base.play("destroyed")
     vfx_requested.emit("tower_destruction_particles", global_position, 1.0, Color.WHITE)
+
+func is_destroyed() -> bool:
+    return _destroyed
 
 func muzzle_position() -> Vector2:
     return global_position + Vector2.from_angle(head.rotation) * float(data["muzzle"])
@@ -206,17 +219,19 @@ func _process(delta: float) -> void:
     head.rotation = lerp_angle(head.rotation, aim, clampf(delta * 12.0, 0.0, 1.0))
 
 func _on_base_finished() -> void:
+    if _destroyed:
+        if base.animation == "destroyed":
+            destroyed_done.emit(self)
+        return
     if base.animation == "build":
         built = true
         base.play("idle")
         head.visible = true
         head.play("idle")
         state_changed.emit(self)
-    elif base.animation == "destroyed":
-        destroyed_done.emit(self)
 
 func _on_head_finished() -> void:
-    if head.animation == "attack":
+    if head.animation == "attack" and not _destroyed:
         head.play("idle")
 
 func _on_head_frame() -> void:

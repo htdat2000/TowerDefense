@@ -1,0 +1,6 @@
+{
+ "free_cost": 1.0,
+ "tower_cost": 1000.0,
+ "default_attack_range_px": 40.0,
+ "tower_attack_range_px": 48.0
+}
